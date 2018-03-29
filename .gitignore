@@ -1,0 +1,7 @@
+.idea/
+vendor/
+composer.lock
+phpunit.xml
+mix-manifest.json
+node_modules/
+*.log
