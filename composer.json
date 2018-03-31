@@ -18,5 +18,8 @@
                 "Hadefication\\Trail\\TrailServiceProvider"
             ]
         }
+    },
+    "require-dev": {
+        "orchestra/testbench": "~3.0"
     }
 }

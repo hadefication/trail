@@ -9,59 +9,83 @@ use Illuminate\Support\Facades\Route;
 
 class TrailCommand extends Command
 {
-    protected $signature = 'trail:dump {path=./resources/assets/js/vendor/trail}';
+
+    /**
+     * Command signature
+     *
+     * @var string
+     */
+    protected $signature = 'trail:dump {path=./resources/assets/js/trail.js}';
     
+    /**
+     * Command description
+     *
+     * @var string
+     */
     protected $description = 'Dump a js file that includes the named routes and route helper that can be included to the build process like Laravel Mix';
     
-    protected $baseUrl;
-    protected $baseProtocol;
-    protected $baseDomain;
-    protected $basePort;
-    protected $router;
-
+    /**
+     * Filesystem container
+     *
+     * @var Filesystem
+     */
     protected $fs;
 
-    public function __construct(Filesystem $fs)
+    /**
+     * Route collection container
+     *
+     * @var TrailRouteCollection
+     */
+    protected $routes;
+
+    /**
+     * Constructor
+     *
+     * @param Filesystem $fs
+     * @param TrailRouteCollection $routes
+     */
+    public function __construct(Filesystem $fs, TrailRouteCollection $routes)
     {
         parent::__construct();
         $this->fs = $fs;
+        $this->routes = $routes;
     }
 
+    /**
+     * Handle
+     *
+     * @return void
+     */
     public function handle()
     {
         $path = $this->argument('path');
-        $compiledRoutes = $this->generateJavaScriptContents();
-        $routeFunction = file_get_contents(__DIR__ . '/../dist/js/route.js');
-        $trailPath = "{$path}/trail.js";
-        $routePath = "{$path}/route.js";
-        $this->makePath($trailPath);
-        $this->makePath($routePath);
-        $this->fs->put($trailPath, $compiledRoutes);
-        $this->fs->put($routePath, $routeFunction);
+        $this->makePath($path);
+        $this->fs->put($path, $this->generateJavaScriptContents());
     }
 
+    /**
+     * Generate the js contents that will be dump
+     *
+     * @return string
+     */
     public function generateJavaScriptContents()
     {
-        $json = json_encode($this->compiledRoutes());
+        $json = $this->routes->compile()->toJson();
+        $routeFunction = file_get_contents(__DIR__ . '/../dist/js/route.js');
         return <<<EOT
-window.Trail = {
-    namedRoutes: $json
-};
+if(typeof window.Trail === 'undefined' || window.Trail === null)
+    throw new Error('Trail Error: @trail blade directive is not yet added: https://github.com/hadefication/trail#blade-directive');
+window.Trail.routes = $json;
+$routeFunction
 EOT;
     }
 
-    public function compiledRoutes()
-    {
-        $routes = new Collection([]);
-        foreach (Route::getRoutes()->getRoutes() as $route) {
-            $routes->push([
-                'uri' => $route->uri(),
-                'name' => $route->getName()
-            ]);
-        }
-        return $routes->all();
-    }
-
+    /** 
+     * Make path
+     * 
+     * @param string $path                      the path to make
+     * @return string
+     */
     protected function makePath($path)
     {
         if (!$this->fs->isDirectory(dirname($path))) {

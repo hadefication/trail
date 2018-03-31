@@ -1,0 +1,30 @@
+- Exclude routes per uri
+- Exclude routes per file i.e. web and api
+- Standard usage
+    - Add blade directive
+        - Exposes `Trail` object
+            - Has the named routes list
+            - Has the necessary settings to build a url 
+                - scheme
+                - domain
+                - port
+        - Exposes `route` method
+    - Start using the route helper
+- Build pipeline usage
+    - Add blade directive
+        - Exposes `Trail` object
+            - Has the named routes list
+            - Has the necessary settings to build a url 
+                - scheme
+                - domain
+                - port
+    - Update `config/trail.php`
+        - Set `excludeNamedRoutesToDump` to false
+        - Set `excludeRouteHelperMethodToDump` to false
+    - Run `php artisan trail:dump` or `php artisan route:dump`
+        - Will dump a js file that can be imported/required
+    - Require/Import the dump js file to the main js file
+    - Start using route helper
+- Package tests
+- JavaScript tests
+
