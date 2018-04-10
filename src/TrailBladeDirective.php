@@ -2,6 +2,8 @@
 
 namespace Hadefication\Trail;
 
+use Illuminate\Support\Arr;
+
 class TrailBladeDirective
 {
 
@@ -41,13 +43,6 @@ class TrailBladeDirective
     protected $routes;
 
     /**
-     * Settings container
-     *
-     * @var array
-     */
-    protected $settings;
-
-    /**
      * Constructor
      *
      * @param TrailRouteCollection $routes
@@ -55,7 +50,6 @@ class TrailBladeDirective
     public function __construct(TrailRouteCollection $routes) 
     {
         $this->routes = $routes;
-        $this->settings = config('trail');
     }
 
     /**
@@ -65,11 +59,19 @@ class TrailBladeDirective
      */
     public function render()
     {
-        $this->config();
-        $namedRoutes = $this->settings['excludeNamedRoutesToDirective'] ? '[]' : $this->routes->compile()->toJson();
-        $routeFunction = $this->settings['excludeRouteHelperMethodToDirective'] ? '' : file_get_contents(__DIR__ . '/../dist/js/route.js');
+        $this->configure();
+        $namedRoutes = config()->get('trail.excludeNamedRoutesToDirective', false) ? '[]' : $this->routes->compile()->toJson();
+        $routeFunction = config()->get('trail.excludeRouteHelperMethodToDirective', false) ? '' : file_get_contents(__DIR__ . '/../dist/js/route.js');
         return <<<EOT
-<script type="text/javascript">window.Trail = {routes: $namedRoutes, url: "{$this->url}", scheme: "{$this->scheme}", domain: "{$this->domain}", port: $this->port};$routeFunction</script>
+<script type="text/javascript">
+    window.Trail = {
+        routes: $namedRoutes,
+        scheme: "{$this->scheme}", 
+        domain: "{$this->domain}", 
+        port: '80'
+    };
+    $routeFunction
+</script>
 EOT;
     }
 
@@ -78,11 +80,10 @@ EOT;
      *
      * @return void
      */
-    private function config()
+    private function configure()
     {
         $url = url('/');
         $parsedUrl = parse_url($url);
-        $this->url = $url . '/';
         $this->scheme = array_key_exists('scheme', $parsedUrl) ? $parsedUrl['scheme'] : 'http';
         $this->domain = array_key_exists('host', $parsedUrl) ? $parsedUrl['host'] : '';
         $this->port = array_key_exists('port', $parsedUrl) ? $parsedUrl['port'] : 'false';

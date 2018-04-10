@@ -2,6 +2,8 @@
 
 namespace Hadefication\Trail;
 
+use Illuminate\Support\Str;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 
@@ -16,12 +18,21 @@ class TrailRouteCollection
     protected $routes;
 
     /**
+     * Excluded routes container
+     *
+     * @var array
+     */
+    protected $excludedRoutes;
+
+    /**
      * Constructor
      *
      * @param Collection $routes
      */
-    public function __construct(Collection $routes) {
-        $this->routes = $routes;
+    public function __construct(Router $router) {
+        $this->router = $router;
+        $this->routes = new Collection();
+        $this->excludedRoutes = new Collection(config()->get('trail.excludeRoutes', []));
     }
 
     /**
@@ -31,15 +42,33 @@ class TrailRouteCollection
      */
     public function compile()
     {
-        foreach (Route::getRoutes()->getRoutes() as $route) {
-            $this->routes->push([
+        foreach ($this->router->getRoutes()->getRoutes() as $route) {
+            $this->routes->push((object)[
                 'uri' => $route->uri(),
                 'name' => $route->getName(),
-                'domain' => $route->getDomain(),
-                'methods' => $route->methods(),
+                'domain' => $route->domain(),
             ]);
         }
 
+        if ($this->excludedRoutes->isNotEmpty()) {
+            $this->filter();
+        }
+
         return $this->routes;
+    }
+
+    /**
+     * Filter collected routes base from the excludedRoutes config
+     *
+     * @return self
+     */
+    protected function filter(): self
+    {
+        $this->excludedRoutes->each(function($excludedRoute) {
+            $this->routes = $this->routes->filter(function($route) use ($excludedRoute) {
+                return (Str::is($excludedRoute, $route->name) || Str::is($excludedRoute, $route->uri)) === false;
+            });
+        });
+        return $this;
     }
 }

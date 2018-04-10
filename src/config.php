@@ -28,18 +28,10 @@ return [
     | Excluded routes per uri
     |--------------------------------------------------------------------------
     |
-    | This value controls the exclusion of named routes per uri. You can use
-    | the full uri definition (/users/show/{id}) or a wildcard 
-    | version (/users/*).
+    | This key controls the routes that will not be included in the collection. 
+    | You either can use the full uri definition (/users/show/{id} or 
+    | /users/*) or the route name (users.show or users.*). See the
+    | documentation for more details.
     */
     'excludeRoutes' => [],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Exclude named routes per route file
-    |--------------------------------------------------------------------------
-    |
-    | This value controls the exclusion of named routes per route file.
-    */
-    'excludeRouteFiles' => []
 ];

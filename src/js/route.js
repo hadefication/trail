@@ -17,6 +17,7 @@ class TrailGuide
         this.trail = Trail;
         this.uri = '';
         this.uriParams = null;
+        this.hasDomain = false;
         this.resolve();
     }
 
@@ -44,9 +45,20 @@ class TrailGuide
         if (typeof route === 'undefined')
             throw new Error(`Route [${this.name}] not defined`);
 
-        this.uri = route.uri == '/' ? '' : route.uri;
+        uri = route.uri == '/' ? '' : route.uri;
+
+        if (typeof route.domain !== 'undefined' && route.domain !== null) {
+            uri = [route.domain, uri].join('/');
+            this.hasDomain = true;
+        }
+            
+        
+        this.uri = uri;
         this.uriParams = this.validate();
         this.parse();
+
+        console.log(this.uri);
+        
     }
 
     /**
@@ -166,17 +178,42 @@ class TrailGuide
     url()
     {
         let { scheme, domain, port } = this.trail;
-        let url = [scheme, domain].join('://');
 
-        if (port) 
-            url = [url, port].join(':');
-        
-        if (this.absolute) {
-            url = [url, this.uri].join('/');
-            if (url.substr(-1) === '/')
-                url = url.substring(0, url.length - 1);
+        if (this.absolute === false)
+            return `/${this.uri}`;
+
+        if (this.hasDomain) {
+            let url = this.uri;
+            if (port !== false) {
+                let segments = url.split('/');
+
+                console.log(segments);
+                url = url.split('/').splice(1, 0, `:${port}`).join('/');
+                
+            }
+
             return url;
         }
+
+        // let url = this.hasDomain ? `${scheme}://` : [scheme, domain].join('://');
+        
+        // console.log(url);
+
+        // if (port) 
+        //     url = [url, port].join(':');
+
+        // console.log(url);
+        
+        
+        // if (this.absolute) {
+        //     url = [url, this.uri].join('/');
+        //     if (url.substr(-1) === '/')
+        //         url = url.substring(0, url.length - 1);
+
+        //     console.log(url);
+            
+        //     return url;
+        // }
             
 
         return `/${this.uri}`;
