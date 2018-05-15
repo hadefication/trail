@@ -1,237 +1,179 @@
-/**!
- * Trail Guide class (route class handler)
- * 
- * @author Glen Bangkila
- * @license MIT
- */
-class TrailGuide
+class Route 
 {
-    constructor(name, params, absolute)
+    constructor(name, params, absolute) 
     {
-        if (typeof name === 'undefined')
+        if (typeof Trail === 'undefined') {
+            throw new Error('Trail is required');
+        }
+        if (typeof name === 'undefined') {
             throw new Error(`Too few arguments to function route(), 0 passed.`);
+        }
 
         this.name = name;
-        this.params = params == null ? undefined : params;
-        this.absolute = absolute;
-        this.trail = Trail;
-        this.uri = '';
-        this.uriParams = null;
-        this.hasDomain = false;
-        this.resolve();
-    }
-
-    /**
-     * Get route 
-     * 
-     * @return undefined|Object
-     */
-    getRoute()
-    {
-        return this.trail.routes.find(item => item.name === this.name);
-    }
-
-    /**
-     * Resolve uri params
-     * 
-     * @return {void}
-     */
-    resolve()
-    {
-        let uri;
-        let params = [];
-        let route = this.getRoute();
-
-        if (typeof route === 'undefined')
+        this.params = typeof params == 'boolean' ? null: params;
+        this.absolute = typeof params == 'boolean' ? params : absolute;
+        this.Trail = Trail;
+        
+        if (typeof this.getRouteDetails() === 'undefined') {
             throw new Error(`Route [${this.name}] not defined`);
-
-        uri = route.uri == '/' ? '' : route.uri;
-
-        if (typeof route.domain !== 'undefined' && route.domain !== null) {
-            uri = [route.domain, uri].join('/');
-            this.hasDomain = true;
         }
-            
-        
-        this.uri = uri;
-        this.uriParams = this.validate();
-        this.parse();
-
-        console.log(this.uri);
-        
     }
 
     /**
-     * Validate uri params
+     * Get route details base from the supplied route name
      * 
-     * @return Array
+     * @return {undefined|Object}
      */
-    validate()
+    getRouteDetails()
     {
-        const validated = [];
-        const params = this.uri.match(/{([^}]+)}/gi);
-        
-        if (params !== null) {
-            params.forEach((raw, key) => {
-                const param = params[key].slice(1, -1);
-                if (this.isParamRequired(raw) && this.isParamNotSupplied(param))
-                    throw new Error(`Missing required parameters for [Route: ${this.name}] [URI: ${this.uri}]`);
-                validated.push({param: (this.isParamOptional(raw) ? param.slice(0, -1) : param), raw});
-            });
-        }  
-
-        return validated;
+        let { routes } = this.Trail;
+        return routes.find(item => item.name === this.name);
     }
 
     /**
-     * Is the param optional?
+     * Normalize params
      * 
-     * @param {String} param                        the param to check 
-     * @return Boolean
+     * @return {Array}
      */
-    isParamOptional(param)
+    normalizeParams()
     {
-        return param.includes('?');   
-    }
-
-    /**
-     * Is the param required?
-     * 
-     * @param {String} param                        the param to check 
-     * @return Boolean
-     */
-    isParamRequired(param)
-    {
-        return param.includes('?') === false;
-    }
-
-    /**
-     * Check if the uri param is supplied
-     * 
-     * @param {String} param                        the param to check 
-     * @return Boolean
-     */
-    isParamSupplied(param)
-    {
-        if (typeof this.params === 'undefined' ||
-            typeof this.params[param] === 'undefined') {
-            return false;
+        if (typeof this.params === 'boolean' ||
+            typeof this.params === 'undefined' ||
+            this.params === null) {
+            return [];
         }
-        return true;
+
+        return Object.keys(this.params);
     }
 
     /**
-     * Opposite of isParamSupplied
+     * Resolve query strings
      * 
-     * @param {String} param                        the param to check 
-     * @return Boolean
-     */
-    isParamNotSupplied(param)
-    {
-        return !this.isParamSupplied(param);
-    }
-    
-    /**
-     * Append query strings from the supplied params
-     * 
-     * @param {String} uri                          the uri to append all query string if there's any
+     * @param {String} uri the uri to handle
+     * @param {Array} uriParams the collected uri params
      * @return {String}
      */
-    appendQueryStrings(uri)
+    resolveQueryStrings(uri, uriParams)
     {
-        let qv = [];
-        let qs = typeof this.params === 'undefined' ? [] : Object.keys(this.params).filter(param => this.uriParams.map(item => item.param).includes(param) === false);
-        qs.forEach(field => {
-            const value = this.params[field];
-            qv.push(`${field}=${value}`);
-        });
-        return qv.length ? ([uri, qv.join('&')].join('?')) : uri;
+        let paramKeys = uriParams.map(item => item.key);
+        let qsKeys = this.normalizeParams().filter(item => paramKeys.includes(item) == false);
+        let qs = qsKeys.map(key => encodeURIComponent(key) + '=' + encodeURIComponent(this.params[key])).join('&');
+
+        if (qsKeys.length > 0) {
+            return [uri, qs].join('?');
+        }
+
+        return uri;
     }
 
     /**
-     * Parse uri params
+     * Parse
      * 
+     * @param {String} uri the uri to parse
+     * @param {Boolean} noQueryString flag to append query strings
+     * @return {string}
+     */
+    parse(uri, noQueryString = false)
+    {
+        let uriParams = [];
+        let matches = uri.match(/{([^}]+)}/gi);
+        let suppliedParams = this.normalizeParams();
+
+        if (matches !== null) {
+            matches.forEach(item => {
+                let param = item.slice(1, -1);
+                uriParams.push({
+                    raw: item,
+                    key: param.replace(/\?$/, ''),
+                    required: param.match(/\?$/) === null
+                });
+            });
+    
+            this.validateParams(uriParams);
+            
+            uriParams.forEach(item => {
+                let { raw, key, required } = item;
+                if (required) {
+                    uri = uri.replace(raw, this.params[key]);
+                } else {
+                    let optional = uri.match(/{([^}]+)\?}/gi);
+                    let supplied = suppliedParams.includes(key);
+                    uri = uri.replace(raw, (supplied ? this.params[key] : ''));
+                }
+            });
+        }
+
+        if (noQueryString === false) {
+            uri = this.resolveQueryStrings(uri, uriParams);
+        }
+
+        return this.removeLeadingSlash(uri);
+    }
+
+    /**
+     * Validate uri params and the supplied params
+     * 
+     * @param {Array} uriParams the collected uri params
      * @return {void}
      */
-    parse()
+    validateParams(uriParams)
     {
-        let uri = this.uri;
-
-        this.uriParams.forEach(item => {
-            let { param, raw } = item;
-            let value = this.params[param];
-            let supplied = typeof this.params[param] !== 'undefined';
-            uri = uri.replace(raw, supplied ? value : '');
-        });
-        
-        if (uri.substr(uri.length - 1) === '/')
-            uri = uri.substring(0, uri.length - 1);
-        
-        this.uri = this.appendQueryStrings(uri);
+        let { uri } = this.getRouteDetails();
+        let suppliedParams = this.normalizeParams();
+        let requiredParams = uriParams.filter(item => item.required == true).map(item => item.key);
+        if (requiredParams.length > 0 && 
+            (suppliedParams.length == 0)) {
+            throw new Error(`Missing required parameters for [Route: ${this.name}] [URI: ${uri}]`);
+        }
     }
 
     /**
-     * Return the route's URL
+     * Remove trailing slash
+     * 
+     * @param {String} value the value to handle
+     * @return {String}
+     */
+    removeTrailingSlash(value)
+    {
+        return value.replace(/\/$/, '');
+    }
+
+    /**
+     * Remove leading slash
+     * 
+     * @param {String} value the value to handle
+     * @return {String}
+     */
+    removeLeadingSlash(value)
+    {
+        return value.replace(/^\//, '');
+    }
+
+    /**
+     * Generate the URL
      * 
      * @return {String}
      */
     url()
     {
-        let { scheme, domain, port } = this.trail;
+        let { uri, domain: routeDomain } = this.getRouteDetails();
+        let { scheme, domain: configDomain, port } = this.Trail;
+        let domain = routeDomain == null ? configDomain : routeDomain;
+        let base = [scheme, domain].join('://');
+        let url = this.parse((uri == '/') ? base : [base, uri].join('/'));
 
-        if (this.absolute === false)
-            return `/${this.uri}`;
-
-        if (this.hasDomain) {
-            let url = this.uri;
-            if (port !== false) {
-                let segments = url.split('/');
-
-                console.log(segments);
-                url = url.split('/').splice(1, 0, `:${port}`).join('/');
-                
-            }
-
-            return url;
+        if (this.absolute === false) {
+            url = url.replace(this.parse(base, true), '');
+            return url.length == 0 ? '/' : url;
         }
 
-        // let url = this.hasDomain ? `${scheme}://` : [scheme, domain].join('://');
-        
-        // console.log(url);
-
-        // if (port) 
-        //     url = [url, port].join(':');
-
-        // console.log(url);
-        
-        
-        // if (this.absolute) {
-        //     url = [url, this.uri].join('/');
-        //     if (url.substr(-1) === '/')
-        //         url = url.substring(0, url.length - 1);
-
-        //     console.log(url);
-            
-        //     return url;
-        // }
-            
-
-        return `/${this.uri}`;
+        return this.removeTrailingSlash(url);
     }
 }
 
-/**
- * Route helper method
- * 
- * @param {String} name                           the route name
- * @param {String} params                         the route parameter
- * @param {Boolean} absolute                      flag to return an absolute or relative URL
- * @return {String}       
- */
-const route = function(name, params, absolute = true) {
-    const trail = new TrailGuide(name, params, absolute);
-    return trail.url();
+
+var route = function(name, params = null, absolute = true) {
+    return (new Route(name, params, absolute)).url();
 };
 
-window.route = route;
-export default route;
+export { route };

@@ -73,9 +73,9 @@ class TrailCommand extends Command
         $json = $this->routes->compile()->toJson();
         $routeFunction = file_get_contents(__DIR__ . '/../dist/js/route.js');
         return <<<EOT
-if(typeof window.Trail === 'undefined' || window.Trail === null)
+if(typeof Trail === 'undefined' || Trail === null)
     throw new Error('Trail Error: @trail blade directive is not yet added: https://github.com/hadefication/trail#blade-directive');
-window.Trail.routes = $json;
+Trail.routes = $json;
 $routeFunction
 EOT;
     }

@@ -61,10 +61,10 @@ class TrailBladeDirective
     {
         $this->configure();
         $namedRoutes = config()->get('trail.excludeNamedRoutesToDirective', false) ? '[]' : $this->routes->compile()->toJson();
-        $routeFunction = config()->get('trail.excludeRouteHelperMethodToDirective', false) ? '' : file_get_contents(__DIR__ . '/../dist/js/route.js');
+        $routeFunction = config()->get('trail.excludeRouteHelperMethodToDirective', false) ? '' : file_get_contents(__DIR__ . '/../dist/js/blade.js');
         return <<<EOT
 <script type="text/javascript">
-    window.Trail = {
+    var Trail = {
         routes: $namedRoutes,
         scheme: "{$this->scheme}", 
         domain: "{$this->domain}", 
