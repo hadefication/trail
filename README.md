@@ -2,7 +2,7 @@
 This package will expose a `@trail` blade directive that you can include into your master blade or layout file. This blade directive exposes a `Trail` JavaScript object that contains config and the collection of named routes that your application has. The directive also exposes a helper method named `route` for convenience, if you know what I mean.
 
 ## Usage
-1. Add this package to your Laravel application by running `composer require hadefication/trail
+1. Add this package to your Laravel application by running `composer require hadefication/trail`
 2. Include `@trail` to your master blade or your main layout file.
 3. Start using `route('route.name')` in your JavaScript to access route URLs.
 4. That's all about it! Noice eh!?
