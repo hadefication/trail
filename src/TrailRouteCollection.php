@@ -43,11 +43,13 @@ class TrailRouteCollection
     public function compile()
     {
         foreach ($this->router->getRoutes()->getRoutes() as $route) {
-            $this->routes->push((object)[
-                'uri' => $route->uri(),
-                'name' => $route->getName(),
-                'domain' => $route->domain(),
-            ]);
+            if (! is_null($route->getName())) {
+                $this->routes->push((object)[
+                    'uri' => $route->uri(),
+                    'name' => $route->getName(),
+                    'domain' => $route->domain()
+                ]);
+            }
         }
 
         if ($this->excludedRoutes->isNotEmpty()) {

@@ -64,12 +64,7 @@ class TrailBladeDirective
         $routeFunction = config()->get('trail.excludeRouteHelperMethodToDirective', false) ? '' : file_get_contents(__DIR__ . '/../dist/js/blade.js');
         return <<<EOT
 <script type="text/javascript">
-    var Trail = {
-        routes: $namedRoutes,
-        scheme: "{$this->scheme}", 
-        domain: "{$this->domain}", 
-        port: '80'
-    };
+    var Trail = {routes: $namedRoutes, scheme: "{$this->scheme}", domain: "{$this->domain}", port: $this->port};
     $routeFunction
 </script>
 EOT;
